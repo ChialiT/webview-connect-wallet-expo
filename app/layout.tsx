@@ -1,5 +1,5 @@
 import './globals.css'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { headers } from 'next/headers'
 import { cookieToInitialState } from 'wagmi'
@@ -11,16 +11,17 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_APP_NAME || 'Wallet Auth Service',
   description: 'Universal wallet authentication service for webview integration',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   robots: {
     index: false,
     follow: false,
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({
