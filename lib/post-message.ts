@@ -25,20 +25,32 @@ export interface WalletAuthMessage {
   error?: any
 }
 
+// Extend Navigator interface for iOS standalone property
+interface ExtendedNavigator extends Navigator {
+  standalone?: boolean;
+}
+
 // Environment detection
 export const detectEnvironment = () => {
   if (typeof window === 'undefined') {
-    return { isServer: true, isWebView: false, isPopup: false, isEmbedded: false, isMobileApp: false };
+    return { isServer: true, isWebView: false, isPopup: false, isEmbedded: false, isMobileApp: false }
   }
 
-  const isReactNativeWebView = !!(window as any).ReactNativeWebView;
-  const userAgent = navigator.userAgent || '';
-  const isMobileApp = /MetaMaskMobile|Trust|Coinbase/i.test(userAgent) ||
-                     (/iPhone|iPad/i.test(userAgent) && !window.navigator.standalone && !/Safari/i.test(userAgent));
+  const isReactNativeWebView = !!(window as any).ReactNativeWebView
+  const userAgent = navigator.userAgent || ''
+  const extendedNavigator = navigator as ExtendedNavigator
   
-  const isPopup = window.opener !== null && window.opener !== window;
-  const isEmbedded = window.parent !== window && !isPopup;
-  const isWebView = isReactNativeWebView || isMobileApp;
+  const isMobileApp = /MetaMaskMobile|Trust|Coinbase|Rainbow|TokenPocket/i.test(userAgent) ||
+                      // iOS app webview detection (with proper type handling)
+                      (/iPhone|iPad/i.test(userAgent) && !extendedNavigator.standalone && !/Safari/i.test(userAgent)) ||
+                      // Android app webview detection  
+                      (/Android/i.test(userAgent) && /wv|Version\/\d+\.\d+/i.test(userAgent))
+  
+  const isPopup = window.opener !== null && window.opener !== window
+  const isEmbedded = window.parent !== window && !isPopup
+  
+  // Combined WebView detection
+  const isWebView = isReactNativeWebView || isMobileApp
   
   return {
     isServer: false,
@@ -48,7 +60,7 @@ export const detectEnvironment = () => {
     isPopup,
     isEmbedded,
     isBrowser: !isWebView && !isPopup && !isEmbedded
-  };
+  }
 }
 
 // Get allowed origins from environment
@@ -74,25 +86,54 @@ export const sendMessageToParent = (message: WalletAuthResult | WalletAuthError)
   const env = detectEnvironment()
   
   try {
-    if (env.isWebView) {
-      // React Native WebView
+    // React Native WebView (your Expo app)
+    if (env.isReactNativeWebView) {
       const webView = (window as any).ReactNativeWebView
       if (webView && webView.postMessage) {
         webView.postMessage(JSON.stringify(message))
         return true
       }
-    } else if (env.isPopup && window.opener) {
-      // Popup window
+    }
+    
+    // Mobile app browsers (MetaMask, etc.)
+    if (env.isMobileApp) {
+      // Try multiple methods for mobile apps
+      
+      // Method 1: Try to communicate with opener if available
+      if (window.opener) {
+        try {
+          window.opener.postMessage(message, '*')
+        } catch (e) {
+          console.log('Opener postMessage failed:', e)
+        }
+      }
+      
+      // Method 2: Use URL parameters for deep linking
+      const searchParams = new URLSearchParams(window.location.search)
+      const returnUrl = searchParams.get('returnUrl') || searchParams.get('redirect_uri')
+      
+      if (returnUrl) {
+        const separator = returnUrl.includes('?') ? '&' : '?'
+        const resultParam = encodeURIComponent(JSON.stringify(message))
+        window.location.href = `${returnUrl}${separator}result=${resultParam}`
+        return true
+      }
+      
+      return true
+    }
+    
+    // Popup window
+    if (env.isPopup && window.opener) {
       const allowedOrigins = getAllowedOrigins()
-      // For local development, use * as origin
       const targetOrigin = process.env.NODE_ENV === 'development' ? '*' : (allowedOrigins.includes('*') ? '*' : allowedOrigins[0])
       
       window.opener.postMessage(message, targetOrigin)
       return true
-    } else if (env.isEmbedded && window.parent) {
-      // Embedded iframe
+    }
+    
+    // Embedded iframe
+    if (env.isEmbedded && window.parent) {
       const allowedOrigins = getAllowedOrigins()
-      // For local development, use * as origin
       const targetOrigin = process.env.NODE_ENV === 'development' ? '*' : (allowedOrigins.includes('*') ? '*' : allowedOrigins[0])
       
       window.parent.postMessage(message, targetOrigin)

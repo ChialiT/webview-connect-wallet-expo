@@ -105,34 +105,15 @@ export default function WalletAuthPage() {
           selectedWalletId
         )
         
-        sendMessageToParent(authResult)
+        // sendMessageToParent will now handle the redirect for mobile automatically.
+        const messageSent = sendMessageToParent(authResult)
         
-        // Auto-close after success with environment check
+        // This setTimeout is now just for closing the web popup after a delay.
         setTimeout(() => {
-          // Check for return URL (from mobile deep link) first.
-          const urlParams = new URLSearchParams(window.location.search);
-          const returnUrl = urlParams.get('returnUrl');
-
-          if (returnUrl) {
-            // Mobile app flow - redirect back with result.
-            const decodedReturnUrl = decodeURIComponent(returnUrl);
-            const separator = decodedReturnUrl.includes('?') ? '&' : '?';
-            const resultParam = encodeURIComponent(JSON.stringify(authResult));
-            const redirectUrl = `${decodedReturnUrl}${separator}result=${resultParam}`;
-            window.location.href = redirectUrl;
-            console.log('Redirecting to:', redirectUrl);
-            return;
-          }
-
-          // Fallback to existing web flows if no returnUrl is present.
           if (environment.isPopup && window.opener) {
             window.close()
-          } else if (environment.isWebView) {
-            // This case might be deprecated by the returnUrl logic, but kept for safety.
-            console.log('Auth complete in WebView, but no returnUrl was provided.');
-          } else if (environment.isEmbedded) {
-            // For embedded iframes, we rely on the parent to handle the success
-            console.log('Embedded auth complete')
+          } else if (!messageSent) {
+            console.log('Auth complete, but no redirect or popup closure occurred.');
           }
         }, 1500)
       }
