@@ -105,20 +105,31 @@ export default function WalletAuthPage() {
           selectedWalletId
         )
         
-        const messageSent = sendMessageToParent(authResult)
+        sendMessageToParent(authResult)
         
         // Auto-close after success with environment check
         setTimeout(() => {
+          // Check for return URL (from mobile deep link) first.
+          const urlParams = new URLSearchParams(window.location.search);
+          const returnUrl = urlParams.get('returnUrl');
+
+          if (returnUrl) {
+            // Mobile app flow - redirect back with result.
+            const decodedReturnUrl = decodeURIComponent(returnUrl);
+            const separator = decodedReturnUrl.includes('?') ? '&' : '?';
+            const resultParam = encodeURIComponent(JSON.stringify(authResult));
+            const redirectUrl = `${decodedReturnUrl}${separator}result=${resultParam}`;
+            window.location.href = redirectUrl;
+            console.log('Redirecting to:', redirectUrl);
+            return;
+          }
+
+          // Fallback to existing web flows if no returnUrl is present.
           if (environment.isPopup && window.opener) {
             window.close()
           } else if (environment.isWebView) {
-            // For WebView, we redirect back to the app using its custom scheme.
-            // We'll pass the auth result as a Base64 encoded string.
-            const appScheme = process.env.NEXT_PUBLIC_APP_SCHEME || 'otm-app-v3';
-            const data = btoa(JSON.stringify(authResult));
-            const redirectUrl = `${appScheme}://wallet-auth?data=${encodeURIComponent(data)}`;
-            window.location.href = redirectUrl;
-            console.log('Redirecting to:', redirectUrl);
+            // This case might be deprecated by the returnUrl logic, but kept for safety.
+            console.log('Auth complete in WebView, but no returnUrl was provided.');
           } else if (environment.isEmbedded) {
             // For embedded iframes, we rely on the parent to handle the success
             console.log('Embedded auth complete')

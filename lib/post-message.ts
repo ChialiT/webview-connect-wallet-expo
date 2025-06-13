@@ -28,20 +28,27 @@ export interface WalletAuthMessage {
 // Environment detection
 export const detectEnvironment = () => {
   if (typeof window === 'undefined') {
-    return { isServer: true, isWebView: false, isPopup: false, isEmbedded: false }
+    return { isServer: true, isWebView: false, isPopup: false, isEmbedded: false, isMobileApp: false };
   }
 
-  const isWebView = !!(window as any).ReactNativeWebView
-  const isPopup = window.opener !== null && window.opener !== window
-  const isEmbedded = window.parent !== window && !isPopup
+  const isReactNativeWebView = !!(window as any).ReactNativeWebView;
+  const userAgent = navigator.userAgent || '';
+  const isMobileApp = /MetaMaskMobile|Trust|Coinbase/i.test(userAgent) ||
+                     (/iPhone|iPad/i.test(userAgent) && !window.navigator.standalone && !/Safari/i.test(userAgent));
+  
+  const isPopup = window.opener !== null && window.opener !== window;
+  const isEmbedded = window.parent !== window && !isPopup;
+  const isWebView = isReactNativeWebView || isMobileApp;
   
   return {
     isServer: false,
     isWebView,
+    isReactNativeWebView,
+    isMobileApp,
     isPopup,
     isEmbedded,
     isBrowser: !isWebView && !isPopup && !isEmbedded
-  }
+  };
 }
 
 // Get allowed origins from environment
