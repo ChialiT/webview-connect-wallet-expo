@@ -119,9 +119,13 @@ This request will not trigger any blockchain transaction or cost any gas fees.`
           if (environment.isPopup && window.opener) {
             window.close()
           } else if (environment.isWebView) {
-            // For WebView, we rely on the parent app to close the WebView
-            // after receiving the success message
-            console.log('WebView auth complete')
+            // For WebView, we redirect back to the app using its custom scheme.
+            // We'll pass the auth result as a Base64 encoded string.
+            const appScheme = process.env.NEXT_PUBLIC_APP_SCHEME || 'otm-app-v3';
+            const data = btoa(JSON.stringify(authResult));
+            const redirectUrl = `${appScheme}://wallet-auth?data=${encodeURIComponent(data)}`;
+            window.location.href = redirectUrl;
+            console.log('Redirecting to:', redirectUrl);
           } else if (environment.isEmbedded) {
             // For embedded iframes, we rely on the parent to handle the success
             console.log('Embedded auth complete')
