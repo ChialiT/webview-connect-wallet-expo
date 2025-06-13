@@ -25,7 +25,7 @@ export const config = createConfig({
     [optimism.id]: http(alchemyApiKey ? `https://opt-mainnet.g.alchemy.com/v2/${alchemyApiKey}` : undefined),
     [arbitrum.id]: http(alchemyApiKey ? `https://arb-mainnet.g.alchemy.com/v2/${alchemyApiKey}` : undefined),
   },
-  ssr: true, // Enable SSR for Next.js
+  ssr: false, // Disable SSR for client-side only rendering
 })
 
 // Wallet detection utilities

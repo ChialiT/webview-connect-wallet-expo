@@ -78,33 +78,47 @@
         const connectButton = document.getElementById('connect-wallet-btn');
         const messageContainer = document.getElementById('message-container');
         const walletAuthUrl = 'http://localhost:3000'; // Your wallet auth service URL
+        let authWindow = null;
 
         // 1. Open the popup when the button is clicked
         connectButton.addEventListener('click', () => {
             messageContainer.innerHTML = '<p class="placeholder">Popup opened. Please complete authentication...</p>';
-            window.open(walletAuthUrl, 'walletAuth', 'width=400,height=750,scrollbars=yes');
+            // Store the window reference
+            authWindow = window.open(walletAuthUrl, 'walletAuth', 'width=400,height=750,scrollbars=yes');
         });
 
         // 2. Listen for messages from the popup window
         window.addEventListener('message', (event) => {
-            // IMPORTANT: In production, you MUST validate the origin for security.
-            // We are skipping it here for local testing simplicity.
-            // if (event.origin !== walletAuthUrl) {
-            //     console.warn('Rejected message from untrusted origin:', event.origin);
-            //     return;
-            // }
+            // Log the received message and origin for debugging
+            console.log('Received message from:', event.origin);
+            console.log('Message data:', event.data);
 
-            console.log('✅ Message received from wallet auth service:', event.data);
+            // For development, accept messages from any origin
+            if (process.env.NODE_ENV !== 'development') {
+                if (event.origin !== walletAuthUrl) {
+                    console.warn('Rejected message from untrusted origin:', event.origin);
+                    return;
+                }
+            }
 
             if (event.data && (event.data.type === 'WALLET_AUTH_SUCCESS' || event.data.type === 'WALLET_AUTH_ERROR')) {
                 // Display the received data in a readable format
                 const formattedData = JSON.stringify(event.data, null, 2);
                 messageContainer.textContent = formattedData;
                 
-                // You can also access specific data points like this:
                 if (event.data.type === 'WALLET_AUTH_SUCCESS') {
+                    console.log('✅ Authentication successful!');
                     console.log('Wallet Address:', event.data.data.address);
                     console.log('Signature:', event.data.data.signature);
+                    
+                    // Close the popup window if it's still open
+                    if (authWindow && !authWindow.closed) {
+                        setTimeout(() => {
+                            authWindow.close();
+                        }, 1500);
+                    }
+                } else {
+                    console.log('❌ Authentication failed:', event.data.error.message);
                 }
             }
         });
