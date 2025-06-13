@@ -105,42 +105,30 @@ export default function WalletAuthPage() {
         )
         
         setTimeout(() => {
-          const urlParams = new URLSearchParams(window.location.search);
-          
-          // Handle multiple return URL parameter formats
-          let returnUrl = urlParams.get('returnUrl') || 
-                         urlParams.get('redirect_uri') || 
-                         urlParams.get('callback');
-          
-          // Handle simple callback parameter if returnUrl is still not found
-          if (!returnUrl) {
-            const callbackParam = urlParams.get('callback');
-            if (callbackParam) {
-              returnUrl = `${callbackParam}://wallet-auth`;
-            }
-          }
-          
-          console.log('All URL params:', Object.fromEntries(urlParams.entries()));
-          console.log('Resolved return URL:', returnUrl);
-          
-          if (returnUrl) {
+          // Check if we are in a mobile wallet browser vs. a web popup
+          if (environment.isMobileApp) {
+            // For mobile, always redirect back to the app's custom scheme.
+            const appScheme = 'otm-app-v3://wallet-auth';
+            const resultParam = encodeURIComponent(JSON.stringify(authResult));
+            const redirectUrl = `${appScheme}?result=${resultParam}`;
+            
+            console.log('Attempting mobile app redirect to:', redirectUrl);
+            
             try {
-              const separator = returnUrl.includes('?') ? '&' : '?';
-              const resultParam = encodeURIComponent(JSON.stringify(authResult));
-              const redirectUrl = `${returnUrl}${separator}result=${resultParam}`;
-              
-              console.log('Redirecting to:', redirectUrl);
               window.location.href = redirectUrl;
-              return; // Stop execution after redirect
+              return; // Stop execution
             } catch (error) {
               console.error('Redirect failed:', error);
+              // Fallback for the user if the redirect fails for any reason
+              alert('Wallet connected successfully! Please return to the app.');
             }
-          }
-          
-          // Fallback for web flows (modal)
-          sendMessageToParent(authResult);
-          if (window.opener) {
-            window.close();
+          } else {
+            // For web, use the existing PostMessage flow.
+            console.log('Sending message to web parent.');
+            sendMessageToParent(authResult);
+            if (window.opener) {
+              window.close();
+            }
           }
         }, 1500);
       }
@@ -284,12 +272,41 @@ export default function WalletAuthPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                       </svg>
                     </div>
-                    <p className="text-gray-500 text-sm">
+                    <p className="text-gray-500 text-sm mb-4">
                       No compatible wallet detected
                     </p>
+                    
+                    <button 
+                      onClick={() => {
+                        // Force open in MetaMask browser
+                        const currentUrl = window.location.href;
+                        const metamaskUrl = `metamask://dapp/${currentUrl.replace('https://', '')}`;
+                        window.location.href = metamaskUrl;
+                      }}
+                      className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-6 rounded-lg mb-4 inline-flex items-center space-x-2"
+                    >
+                      <span>🦊</span>
+                      <span>Open in MetaMask</span>
+                    </button>
+                    
                     <p className="text-gray-400 text-xs mt-2">
                       Please install MetaMask or Coinbase Wallet
                     </p>
+                    
+                    <div className="flex justify-center space-x-4 mt-4">
+                      <a 
+                        href="https://apps.apple.com/app/metamask/id1438144202"
+                        className="text-blue-500 text-sm"
+                      >
+                        Install MetaMask
+                      </a>
+                      <a 
+                        href="https://apps.apple.com/app/coinbase-wallet/id1278383455"
+                        className="text-blue-500 text-sm"
+                      >
+                        Install Coinbase Wallet
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>
