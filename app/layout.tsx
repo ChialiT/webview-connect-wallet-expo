@@ -1,9 +1,6 @@
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
-import { headers } from 'next/headers'
-import { cookieToInitialState } from 'wagmi'
-import { config } from '../lib/wagmi-config'
 import { Providers } from '../components/Providers'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -29,7 +26,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const initialState = cookieToInitialState(config, headers().get('cookie'))
   return (
     <html lang="en" className="h-full">
       <head>
@@ -40,7 +36,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body className={`${inter.className} h-full bg-gray-50`}>
-        <Providers initialState={initialState}>
+        <Providers>
           <div className="min-h-full">
             {children}
           </div>
