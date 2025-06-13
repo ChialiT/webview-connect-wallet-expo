@@ -95,4 +95,33 @@ export const getAvailableWallets = () => {
 
   // Deduplicate and return
   return Array.from(new Map(walletList.map(item => [item.id, item])).values());
-} 
+}
+
+export const wagmiConfig = createConfig({
+  chains: [mainnet, polygon, optimism, arbitrum],
+  connectors: [
+    injected({
+      target: 'metaMask',
+      shimDisconnect: true,
+    }),
+    injected({
+      target: 'coinbaseWallet',
+      shimDisconnect: true,
+    }),
+    injected(),
+  ],
+  transports: {
+    [mainnet.id]: http(alchemyApiKey ? `https://eth-mainnet.g.alchemy.com/v2/${alchemyApiKey}` : undefined),
+    [polygon.id]: http(alchemyApiKey ? `https://polygon-mainnet.g.alchemy.com/v2/${alchemyApiKey}` : undefined),
+    [optimism.id]: http(alchemyApiKey ? `https://opt-mainnet.g.alchemy.com/v2/${alchemyApiKey}` : undefined),
+    [arbitrum.id]: http(alchemyApiKey ? `https://arb-mainnet.g.alchemy.com/v2/${alchemyApiKey}` : undefined),
+  },
+  ssr: false, // Disable SSR for client-side only rendering
+  NEXT_PUBLIC_ALCHEMY_API_KEY: process.env.NEXT_PUBLIC_ALCHEMY_API_KEY,
+  ALLOWED_ORIGINS:
+    process.env.NEXT_PUBLIC_ALLOWED_ORIGINS?.split(',') ?? [
+      'http://localhost:3000',
+      'http://localhost:19006',
+      'http://localhost:8081',
+    ],
+}) 
