@@ -159,8 +159,20 @@ export const createAuthErrorMessage = (
   }
 })
 
-// Error codes
-export const ERROR_CODES = {
+// Error codes, messages, and types
+export type ErrorCode =
+  | 'USER_REJECTED'
+  | 'WALLET_NOT_DETECTED'
+  | 'WALLET_LOCKED'
+  | 'NETWORK_ERROR'
+  | 'SIGNATURE_FAILED'
+  | 'UNSUPPORTED_CHAIN'
+  | 'TIMEOUT'
+  | 'WALLET_UNAVAILABLE'
+  | 'CONNECTION_FAILED'
+  | 'UNKNOWN_ERROR'
+
+export const ERROR_CODES: { [key in ErrorCode]: ErrorCode } = {
   USER_REJECTED: 'USER_REJECTED',
   WALLET_NOT_DETECTED: 'WALLET_NOT_DETECTED',
   WALLET_LOCKED: 'WALLET_LOCKED',
@@ -170,21 +182,18 @@ export const ERROR_CODES = {
   TIMEOUT: 'TIMEOUT',
   WALLET_UNAVAILABLE: 'WALLET_UNAVAILABLE',
   CONNECTION_FAILED: 'CONNECTION_FAILED',
-  UNKNOWN_ERROR: 'UNKNOWN_ERROR'
-} as const
+  UNKNOWN_ERROR: 'UNKNOWN_ERROR',
+}
 
-export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES]
-
-// Error messages
-export const ERROR_MESSAGES = {
-  [ERROR_CODES.USER_REJECTED]: 'User rejected the connection request',
-  [ERROR_CODES.WALLET_NOT_DETECTED]: 'No compatible wallet detected in browser',
-  [ERROR_CODES.WALLET_LOCKED]: 'Wallet is locked, please unlock it',
-  [ERROR_CODES.NETWORK_ERROR]: 'Network connection failed',
-  [ERROR_CODES.SIGNATURE_FAILED]: 'Message signing failed',
-  [ERROR_CODES.UNSUPPORTED_CHAIN]: 'Unsupported blockchain network',
-  [ERROR_CODES.TIMEOUT]: 'Connection request timed out',
-  [ERROR_CODES.WALLET_UNAVAILABLE]: 'Selected wallet is not available',
-  [ERROR_CODES.CONNECTION_FAILED]: 'Failed to connect to wallet',
-  [ERROR_CODES.UNKNOWN_ERROR]: 'An unknown error occurred'
-} as const 
+export const ERROR_MESSAGES: Record<ErrorCode, string> = {
+  USER_REJECTED: 'User rejected the connection request',
+  WALLET_NOT_DETECTED: 'No compatible wallet detected in browser',
+  WALLET_LOCKED: 'Wallet is locked, please unlock it',
+  NETWORK_ERROR: 'Network connection failed',
+  SIGNATURE_FAILED: 'Message signing failed',
+  UNSUPPORTED_CHAIN: 'Unsupported blockchain network',
+  TIMEOUT: 'Connection request timed out',
+  WALLET_UNAVAILABLE: 'Selected wallet is not available',
+  CONNECTION_FAILED: 'Failed to connect to wallet',
+  UNKNOWN_ERROR: 'An unknown error occurred',
+} 
