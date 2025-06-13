@@ -11,6 +11,7 @@ export default function WalletAuthPage() {
   const [authStep, setAuthStep] = useState<'select' | 'connecting' | 'signing' | 'success' | 'error'>('select')
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null)
   const [isClient, setIsClient] = useState(false)
+  const [hasSigned, setHasSigned] = useState(false);
   
   const { connect, connectors, isPending } = useConnect()
   const { address, isConnected, chain } = useAccount()
@@ -27,16 +28,8 @@ export default function WalletAuthPage() {
   // Generate authentication message
   const generateAuthMessage = (walletAddress: string, nonce: string, chainId: number) => {
     const appName = process.env.NEXT_PUBLIC_APP_NAME || 'Wallet Auth Service'
-    const timestamp = new Date().toISOString()
-    
-    return `Sign in to ${appName}
-
-Wallet: ${walletAddress}
-Nonce: ${nonce}
-Chain ID: ${chainId}
-Issued At: ${timestamp}
-
-This request will not trigger any blockchain transaction or cost any gas fees.`
+    // A shorter message is better for mobile UX
+    return `Authenticate with ${appName}\nWallet: ${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}\nNonce: ${nonce.substring(0, 8)}...`;
   }
 
   // Generate cryptographically secure nonce
@@ -153,36 +146,62 @@ This request will not trigger any blockchain transaction or cost any gas fees.`
 
   // Auto-trigger signing when connected
   useEffect(() => {
-    if (isConnected && address && authStep === 'connecting') {
-      handleMessageSigning()
+    if (isConnected && address && authStep === 'connecting' && !hasSigned) {
+      setHasSigned(true);
+      handleMessageSigning();
     }
-  }, [isConnected, address, authStep])
+  }, [isConnected, address, authStep, hasSigned]);
 
   // Reset on disconnect
   useEffect(() => {
     if (!isConnected && authStep !== 'select') {
-      setAuthStep('select')
-      setSelectedWalletId(null)
-      setError(null)
+      setAuthStep('select');
+      setSelectedWalletId(null);
+      setError(null);
+      setHasSigned(false); // Reset the signing guard
     }
-  }, [isConnected])
+  }, [isConnected]);
 
   // --- Auto-connect hook for in-app browser environments ---
   useEffect(() => {
-    // This effect should run when the necessary dependencies are ready.
-    if (isClient && environment.isWebView && !isConnected && connectors.length > 0) {
-      const injectedConnector = connectors.find(c => c.id === 'injected');
-
-      if (injectedConnector) {
-        // Add a short delay to give the wallet provider time to be injected.
-        // This helps prevent a race condition on page load.
-        const timer = setTimeout(() => {
-          handleWalletConnect(injectedConnector.id);
-        }, 500); // 500ms delay
-
-        return () => clearTimeout(timer);
-      }
+    if (!isClient || !environment.isWebView || isConnected) {
+      return;
     }
+
+    // Find the injected connector once, as the array is stable.
+    const injectedConnector = connectors.find(c => c.id === 'injected');
+
+    if (!injectedConnector) {
+      console.error('Injected wallet provider not found.');
+      setError('No wallet provider was found. Please ensure your wallet is active.');
+      setAuthStep('error');
+      return;
+    }
+
+    // MetaMask's in-app browser can be slow to inject `window.ethereum`.
+    // We'll poll to see when we can connect.
+    let attempts = 0;
+    const maxAttempts = 10; // Poll for 5 seconds (10 * 500ms)
+
+    const pollForConnection = setInterval(() => {
+      // The connector is found, now we check if we can connect
+      if (!isConnecting) {
+        clearInterval(pollForConnection); // Stop polling
+        handleWalletConnect(injectedConnector.id); // Attempt connection
+      } else {
+        attempts++;
+        if (attempts >= maxAttempts) {
+          clearInterval(pollForConnection);
+          console.error('Wallet connection timed out after 5 seconds.');
+          setError('Wallet connection timed out. Please try again.');
+          setAuthStep('error');
+        }
+      }
+    }, 500); // Check every 500ms
+
+    return () => {
+      clearInterval(pollForConnection);
+    };
   }, [isClient, environment, isConnected, connectors, handleWalletConnect]);
 
   const renderWalletButton = (wallet: any) => (
