@@ -23,6 +23,14 @@ export default function WalletAuthPage() {
 
   useEffect(() => {
     setIsClient(true)
+    // When the page loads, check for a returnUrl and store it.
+    // This preserves it across browser sessions (e.g., from Safari to MetaMask).
+    const urlParams = new URLSearchParams(window.location.search);
+    const returnUrl = urlParams.get('returnUrl');
+    if (returnUrl) {
+      localStorage.setItem('wallet_auth_return_url', returnUrl);
+      console.log('Stored return URL in localStorage:', returnUrl);
+    }
   }, [])
 
   // Generate authentication message
@@ -107,19 +115,31 @@ export default function WalletAuthPage() {
         setTimeout(() => {
           // Check if we are in a mobile wallet browser vs. a web popup
           if (environment.isMobileApp) {
-            // For mobile, always redirect back to the app's custom scheme.
-            const appScheme = 'otm-app-v3://wallet-auth';
-            const resultParam = encodeURIComponent(JSON.stringify(authResult));
-            const redirectUrl = `${appScheme}?result=${resultParam}`;
+            // For mobile, redirect back to the app's custom scheme.
+            // First, try to get the return URL from the current session's URL params.
+            // If it's not there, fall back to the URL we stored in localStorage.
+            const urlParams = new URLSearchParams(window.location.search);
+            let returnUrl = urlParams.get('returnUrl') || localStorage.getItem('wallet_auth_return_url');
             
-            console.log('Attempting mobile app redirect to:', redirectUrl);
-            
-            try {
-              window.location.href = redirectUrl;
-              return; // Stop execution
-            } catch (error) {
-              console.error('Redirect failed:', error);
-              // Fallback for the user if the redirect fails for any reason
+            if (returnUrl) {
+              // Clean up the stored item
+              localStorage.removeItem('wallet_auth_return_url');
+              
+              const resultParam = encodeURIComponent(JSON.stringify(authResult));
+              const separator = returnUrl.includes('?') ? '&' : '?';
+              const redirectUrl = `${returnUrl}${separator}result=${resultParam}`;
+              
+              console.log('Attempting mobile app redirect to:', redirectUrl);
+              
+              try {
+                window.location.href = redirectUrl;
+                return; // Stop execution
+              } catch (error) {
+                console.error('Redirect failed:', error);
+                alert('Wallet connected successfully! Please return to the app.');
+              }
+            } else {
+              console.error('No return URL found in params or localStorage.');
               alert('Wallet connected successfully! Please return to the app.');
             }
           } else {
@@ -168,6 +188,19 @@ export default function WalletAuthPage() {
       setHasSigned(false); // Reset the signing guard
     }
   }, [isConnected]);
+
+  const handleOpenInMetaMask = () => {
+    // Reconstruct the full URL with query params to preserve them.
+    const currentUrl = new URL(window.location.href);
+    const paramsString = currentUrl.searchParams.toString();
+    const baseUrl = `${currentUrl.origin}${currentUrl.pathname}`;
+    const urlWithParams = paramsString ? `${baseUrl}?${paramsString}` : baseUrl;
+
+    const metamaskUrl = `metamask://dapp/${urlWithParams.replace(/^https?:\/\//, '')}`;
+    
+    console.log('Re-opening in MetaMask, preserving params:', metamaskUrl);
+    window.location.href = metamaskUrl;
+  };
 
   // --- Auto-connect hook for in-app browser environments ---
   useEffect(() => {
@@ -277,12 +310,7 @@ export default function WalletAuthPage() {
                     </p>
                     
                     <button 
-                      onClick={() => {
-                        // Force open in MetaMask browser
-                        const currentUrl = window.location.href;
-                        const metamaskUrl = `metamask://dapp/${currentUrl.replace('https://', '')}`;
-                        window.location.href = metamaskUrl;
-                      }}
+                      onClick={handleOpenInMetaMask}
                       className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-6 rounded-lg mb-4 inline-flex items-center space-x-2"
                     >
                       <span>🦊</span>
