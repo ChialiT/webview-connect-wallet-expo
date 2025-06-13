@@ -6,8 +6,6 @@ const nextConfig = {
   images: {
     unoptimized: true
   },
-  // Enable static export for better Vercel performance
-  output: process.env.NODE_ENV === 'production' ? 'export' : 'standalone',
   // Disable API routes for static export
   experimental: {
     appDir: true
