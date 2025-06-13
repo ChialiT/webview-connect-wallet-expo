@@ -94,5 +94,5 @@ export const getAvailableWallets = () => {
   ).filter(Boolean) // Filter out any unsupported but detected wallets
 
   // Deduplicate and return
-  return [...new Map(walletList.map(item => [item.id, item])).values()];
+  return Array.from(new Map(walletList.map(item => [item.id, item])).values());
 } 
