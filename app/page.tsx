@@ -96,7 +96,6 @@ export default function WalletAuthPage() {
       if (signature) {
         setAuthStep('success')
         
-        // Send success data to parent
         const authResult = createAuthSuccessMessage(
           address,
           signature,
@@ -105,17 +104,45 @@ export default function WalletAuthPage() {
           selectedWalletId
         )
         
-        // sendMessageToParent will now handle the redirect for mobile automatically.
-        const messageSent = sendMessageToParent(authResult)
-        
-        // This setTimeout is now just for closing the web popup after a delay.
         setTimeout(() => {
-          if (environment.isPopup && window.opener) {
-            window.close()
-          } else if (!messageSent) {
-            console.log('Auth complete, but no redirect or popup closure occurred.');
+          const urlParams = new URLSearchParams(window.location.search);
+          
+          // Handle multiple return URL parameter formats
+          let returnUrl = urlParams.get('returnUrl') || 
+                         urlParams.get('redirect_uri') || 
+                         urlParams.get('callback');
+          
+          // Handle simple callback parameter if returnUrl is still not found
+          if (!returnUrl) {
+            const callbackParam = urlParams.get('callback');
+            if (callbackParam) {
+              returnUrl = `${callbackParam}://wallet-auth`;
+            }
           }
-        }, 1500)
+          
+          console.log('All URL params:', Object.fromEntries(urlParams.entries()));
+          console.log('Resolved return URL:', returnUrl);
+          
+          if (returnUrl) {
+            try {
+              const separator = returnUrl.includes('?') ? '&' : '?';
+              const resultParam = encodeURIComponent(JSON.stringify(authResult));
+              const redirectUrl = `${returnUrl}${separator}result=${resultParam}`;
+              
+              console.log('Redirecting to:', redirectUrl);
+              window.location.href = redirectUrl;
+              return; // Stop execution after redirect
+            } catch (error) {
+              console.error('Redirect failed:', error);
+            }
+          }
+          
+          // Fallback for web flows (modal)
+          sendMessageToParent(authResult);
+          if (window.opener) {
+            window.close();
+          }
+        }, 1500);
       }
     } catch (err: any) {
       console.error('Signing error:', err)
