@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useConnect, useAccount, useSignMessage, useDisconnect } from 'wagmi'
-import { createAuthErrorMessage, createAuthSuccessMessage, detectEnvironment, ERROR_CODES, ERROR_MESSAGES, sendMessageToParent } from '../lib/post-message'
+import { createAuthErrorMessage, createAuthSuccessMessage, detectEnvironment, ERROR_CODES, ERROR_MESSAGES, sendMessageToParent, type ErrorCode } from '../lib/post-message'
 import { getAvailableWallets } from '../lib/wagmi-config'
 
 export default function WalletAuthPage() {
@@ -67,7 +67,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`
     } catch (err: any) {
       console.error('Connection error:', err)
       
-      let errorCode = ERROR_CODES.CONNECTION_FAILED
+      let errorCode: ErrorCode = ERROR_CODES.CONNECTION_FAILED
       let errorMessage = ERROR_MESSAGES[errorCode]
       
       if (err.message?.includes('User rejected')) {
@@ -122,7 +122,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`
     } catch (err: any) {
       console.error('Signing error:', err)
       
-      let errorCode = ERROR_CODES.SIGNATURE_FAILED
+      let errorCode: ErrorCode = ERROR_CODES.SIGNATURE_FAILED
       let errorMessage = ERROR_MESSAGES[errorCode]
       
       if (err.message?.includes('User rejected')) {
