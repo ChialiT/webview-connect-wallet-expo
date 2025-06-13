@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Auth Test Harness</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #1c1e21;
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 2rem 3rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        p {
+            color: #606770;
+            margin-bottom: 2rem;
+        }
+        button {
+            background-color: #1877f2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #166fe5;
+        }
+        #message-container {
+            margin-top: 2rem;
+            padding: 1rem;
+            border: 1px solid #dddfe2;
+            background-color: #f9fafb;
+            border-radius: 8px;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.875rem;
+        }
+        .placeholder {
+            color: #8a8d91;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Wallet Auth Test Harness</h1>
+        <p>This page simulates the main application receiving wallet data.</p>
+        <button id="connect-wallet-btn">Open Wallet Authentication</button>
+        
+        <div id="message-container">
+            <p class="placeholder">Waiting for wallet authentication result...</p>
+        </div>
+    </div>
+
+    <script>
+        const connectButton = document.getElementById('connect-wallet-btn');
+        const messageContainer = document.getElementById('message-container');
+        const walletAuthUrl = 'http://localhost:3000'; // Your wallet auth service URL
+
+        // 1. Open the popup when the button is clicked
+        connectButton.addEventListener('click', () => {
+            messageContainer.innerHTML = '<p class="placeholder">Popup opened. Please complete authentication...</p>';
+            window.open(walletAuthUrl, 'walletAuth', 'width=400,height=750,scrollbars=yes');
+        });
+
+        // 2. Listen for messages from the popup window
+        window.addEventListener('message', (event) => {
+            // IMPORTANT: In production, you MUST validate the origin for security.
+            // We are skipping it here for local testing simplicity.
+            // if (event.origin !== walletAuthUrl) {
+            //     console.warn('Rejected message from untrusted origin:', event.origin);
+            //     return;
+            // }
+
+            console.log('✅ Message received from wallet auth service:', event.data);
+
+            if (event.data && (event.data.type === 'WALLET_AUTH_SUCCESS' || event.data.type === 'WALLET_AUTH_ERROR')) {
+                // Display the received data in a readable format
+                const formattedData = JSON.stringify(event.data, null, 2);
+                messageContainer.textContent = formattedData;
+                
+                // You can also access specific data points like this:
+                if (event.data.type === 'WALLET_AUTH_SUCCESS') {
+                    console.log('Wallet Address:', event.data.data.address);
+                    console.log('Signature:', event.data.data.signature);
+                }
+            }
+        });
+
+        // Also log any errors to the console
+        window.addEventListener('error', (event) => {
+            console.error('An error occurred in the test harness:', event.error);
+        });
+    </script>
+</body>
+</html> 
