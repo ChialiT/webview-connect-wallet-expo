@@ -167,6 +167,24 @@ This request will not trigger any blockchain transaction or cost any gas fees.`
     }
   }, [isConnected])
 
+  // --- Auto-connect hook for in-app browser environments ---
+  useEffect(() => {
+    // This effect should run when the necessary dependencies are ready.
+    if (isClient && environment.isWebView && !isConnected && connectors.length > 0) {
+      const injectedConnector = connectors.find(c => c.id === 'injected');
+
+      if (injectedConnector) {
+        // Add a short delay to give the wallet provider time to be injected.
+        // This helps prevent a race condition on page load.
+        const timer = setTimeout(() => {
+          handleWalletConnect(injectedConnector.id);
+        }, 500); // 500ms delay
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isClient, environment, isConnected, connectors, handleWalletConnect]);
+
   const renderWalletButton = (wallet: any) => (
     <button
       key={wallet.id}
