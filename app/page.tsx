@@ -112,11 +112,20 @@ This request will not trigger any blockchain transaction or cost any gas fees.`
           selectedWalletId
         )
         
-        sendMessageToParent(authResult)
+        const messageSent = sendMessageToParent(authResult)
         
-        // Auto-close after success (optional delay)
+        // Auto-close after success with environment check
         setTimeout(() => {
-          window.close?.()
+          if (environment.isPopup && window.opener) {
+            window.close()
+          } else if (environment.isWebView) {
+            // For WebView, we rely on the parent app to close the WebView
+            // after receiving the success message
+            console.log('WebView auth complete')
+          } else if (environment.isEmbedded) {
+            // For embedded iframes, we rely on the parent to handle the success
+            console.log('Embedded auth complete')
+          }
         }, 1500)
       }
     } catch (err: any) {

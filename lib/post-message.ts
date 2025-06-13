@@ -77,14 +77,16 @@ export const sendMessageToParent = (message: WalletAuthResult | WalletAuthError)
     } else if (env.isPopup && window.opener) {
       // Popup window
       const allowedOrigins = getAllowedOrigins()
-      const targetOrigin = allowedOrigins.includes('*') ? '*' : allowedOrigins[0]
+      // For local development, use * as origin
+      const targetOrigin = process.env.NODE_ENV === 'development' ? '*' : (allowedOrigins.includes('*') ? '*' : allowedOrigins[0])
       
       window.opener.postMessage(message, targetOrigin)
       return true
     } else if (env.isEmbedded && window.parent) {
       // Embedded iframe
       const allowedOrigins = getAllowedOrigins()
-      const targetOrigin = allowedOrigins.includes('*') ? '*' : allowedOrigins[0]
+      // For local development, use * as origin
+      const targetOrigin = process.env.NODE_ENV === 'development' ? '*' : (allowedOrigins.includes('*') ? '*' : allowedOrigins[0])
       
       window.parent.postMessage(message, targetOrigin)
       return true
