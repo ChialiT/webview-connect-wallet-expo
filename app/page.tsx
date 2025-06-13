@@ -168,39 +168,32 @@ export default function WalletAuthPage() {
       return;
     }
 
-    // Find the injected connector once, as the array is stable.
-    const injectedConnector = connectors.find(c => c.id === 'injected');
-
-    if (!injectedConnector) {
-      console.error('Injected wallet provider not found.');
-      setError('No wallet provider was found. Please ensure your wallet is active.');
-      setAuthStep('error');
-      return;
-    }
-
     // MetaMask's in-app browser can be slow to inject `window.ethereum`.
-    // We'll poll to see when we can connect.
+    // We'll poll to see when wagmi has detected the injected connector.
     let attempts = 0;
     const maxAttempts = 10; // Poll for 5 seconds (10 * 500ms)
 
-    const pollForConnection = setInterval(() => {
-      // The connector is found, now we check if we can connect
-      if (!isConnecting) {
-        clearInterval(pollForConnection); // Stop polling
-        handleWalletConnect(injectedConnector.id); // Attempt connection
+    const pollForWallet = setInterval(() => {
+      // The `connectors` array is populated asynchronously by wagmi.
+      // We need to check inside the interval to see when it's ready.
+      const injectedConnector = connectors.find(c => c.id === 'injected');
+
+      if (injectedConnector) {
+        clearInterval(pollForWallet); // Wallet found, stop polling.
+        handleWalletConnect(injectedConnector.id); // Attempt connection once.
       } else {
         attempts++;
         if (attempts >= maxAttempts) {
-          clearInterval(pollForConnection);
-          console.error('Wallet connection timed out after 5 seconds.');
-          setError('Wallet connection timed out. Please try again.');
+          clearInterval(pollForWallet);
+          console.error('Injected wallet provider not found after 5 seconds.');
+          setError('No wallet provider was found. Please ensure your wallet is active and try again.');
           setAuthStep('error');
         }
       }
     }, 500); // Check every 500ms
 
     return () => {
-      clearInterval(pollForConnection);
+      clearInterval(pollForWallet);
     };
   }, [isClient, environment, isConnected, connectors, handleWalletConnect]);
 
