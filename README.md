@@ -1,3 +1,5 @@
+This project is not completed. please do not waste your time.
+
 # Universal Wallet Authentication Service
 
 A Next.js-based wallet authentication service designed for seamless WebView integration across iOS, Android, and Web platforms. Built with **wagmi** and **no WalletConnect SDK** to avoid upcoming fees.
